@@ -1,0 +1,78 @@
+{{ 'template-collection.css' | asset_url | stylesheet_tag }}
+{{ 'component-card.css' | asset_url | stylesheet_tag }}
+{{ 'component-price.css' | asset_url | stylesheet_tag }}
+
+<div class="page-width">
+  <h1 class="collection-hero__title">{{ collection.title | escape }}</h1>
+  {%- if collection.description != blank -%}
+    <div class="collection-hero__description rte">{{ collection.description }}</div>
+  {%- endif -%}
+</div>
+
+{%- paginate collection.products by 24 -%}
+  <div class="collection page-width">
+    <ul
+      id="product-grid"
+      class="grid product-grid grid--2-col-tablet-down grid--4-col-desktop"
+      role="list"
+    >
+      {%- for product in collection.products -%}
+        {%- liquid
+          assign colour_position = 0
+          for option in product.options_with_values
+            assign option_name = option.name | downcase | strip
+            if option_name == 'color' or option_name == 'colour'
+              assign colour_position = forloop.index
+              break
+            endif
+          endfor
+        -%}
+
+        {%- if colour_position == 0 -%}
+          <li class="grid__item">
+            {% render 'card-product',
+              card_product: product,
+              media_aspect_ratio: 'adapt',
+              show_secondary_image: false,
+              section_id: 'with-variants'
+            %}
+          </li>
+        {%- else -%}
+          {%- assign seen_colours = '' -%}
+          {%- for variant in product.variants -%}
+            {%- liquid
+              case colour_position
+                when 1
+                  assign variant_colour = variant.option1
+                when 2
+                  assign variant_colour = variant.option2
+                when 3
+                  assign variant_colour = variant.option3
+              endcase
+
+              assign colour_key = '~' | append: variant_colour | append: '~'
+            -%}
+
+            {%- unless seen_colours contains colour_key -%}
+              {%- assign seen_colours = seen_colours | append: colour_key -%}
+              <li class="grid__item">
+                {% render 'card-product',
+                  card_product: product,
+                  card_variant: variant,
+                  card_colour: variant_colour,
+                  media_aspect_ratio: 'adapt',
+                  show_secondary_image: false,
+                  section_id: 'with-variants'
+                %}
+              </li>
+            {%- endunless -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endfor -%}
+    </ul>
+
+    {%- if paginate.pages > 1 -%}
+      {%- render 'pagination', paginate: paginate -%}
+    {%- endif -%}
+  </div>
+{%- endpaginate -%}
